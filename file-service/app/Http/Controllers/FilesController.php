@@ -150,4 +150,11 @@ class FilesController extends Controller
         return response()->json($suggestions);
     }
 
+    public function getFile(Request $request) {
+        $id = $request->input("id");
+        $record = File::findOrFail($id);
+        
+        return response()->json($record);
+    }
+
 }
