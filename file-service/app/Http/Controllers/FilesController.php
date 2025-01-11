@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Http\Requests\FileUploadRequest;
 use App\Models\File;
+use Illuminate\Support\Facades\Redis;
 use Intervention\Image\Facades\Image;
 use Illuminate\Support\Facades\Storage;
 
@@ -43,7 +44,7 @@ class FilesController extends Controller
         ]);
     }
 
-    public static function update(FileUploadRequest $request, $id){
+    public function update(FileUploadRequest $request, $id){
         $record = File::findOrFail($id);
 
         if($request->hasFile("file")) {
@@ -90,7 +91,7 @@ class FilesController extends Controller
         ]);
     }
 
-    public static function delete(Request $request, $id) {
+    public function delete(Request $request, $id) {
         $record = File::findOrFail($id);
 
         if($record->location) {
@@ -108,7 +109,7 @@ class FilesController extends Controller
         ]);
     }
 
-    public static function index(Request $request) {
+    public function index(Request $request) {
         $query = File::query();
 
         if($request->has("search")) {
@@ -132,6 +133,21 @@ class FilesController extends Controller
                 'next' => $records->nextPageUrl(),
             ]
         ]);
+    }
+
+    public function suggestions(Request $request) {
+        $query = $request->input("q", "");
+
+        if(empty($query)) {
+            return response()->json([]);
+        }
+
+        $suggestions = File::where("name", "like", "%" . $query . "%")
+            ->select("name")
+            ->limit(10)
+            ->get();
+
+        return response()->json($suggestions);
     }
 
 }
