@@ -12,3 +12,9 @@ Route::get('/', function () {
 Route::get("/create", function() {
     return Inertia::render("Create");
 })->name("create");
+
+Route::get('/edit/{id}', function ($id) {
+    return Inertia::render('Create', [
+        'id' => $id,
+    ]);
+})->name('files.edit');

@@ -1,129 +1,106 @@
 <template>
     <default-layout>
-        <div class="flex flex-col items-center w-full">
-            <h1 class="text-white text-3xl font-bold">Создание записи</h1>
+        <div>
+            <h1 class="text-2xl font-bold mb-4 text-white text-center">
+                {{ isEditMode ? 'Редактирование файла' : 'Создание файла' }}
+            </h1>
             <hr class="bg-gray-600 h-[1px] mt-12 w-full outline-none border-none">
-            <div class="w-full">
-                <form @submit.prevent="handleSubmit">
-                    <div class="mt-10">
-                        <div class="flex justify-around w-full items-center">
-                            <label for="name" class="text-white text-xl font-semibold">Название файла</label>
-                            <div class="mt-2">
-                                <div class="flex items-center rounded-md bg-white">
-                                    <input type="text" name="name" id="name" v-model="formData.name" max="255"
-                                        class="w-full px-4 text-slate-900 font-bold py-2 transition-all bg-gray-300 hover:bg-gray-600 focus:bg-gray-600 rounded-md outline-none focus:outline-none"
-                                        placeholder="Название" />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <hr class="bg-gray-600 h-[1px] mt-12 w-full outline-none border-none">
-                    <div class="mt-10">
-                        <div class="flex justify-around w-full items-center">
-                            <label for="cover-photo" class="text-white text-xl font-semibold">Загружаемый файл *</label>
-                            <div class="mt-2 flex justify-center rounded-lg border border-dashed border-white px-6 py-10"
-                                @dragover.prevent="dragOver" @dragleave.prevent="dragLeave" @drop.prevent="drop"
-                                :class="{ 'border-blue-500': isDragging }">
-                                <div class="text-center">
-                                    <div class="mt-4 flex text-sm/6 text-white">
-                                        <label for="file-upload"
-                                            class="relative cursor-pointer rounded-md px-2 bg-white font-semibold text-slate-900 hover:bg-gray-300 transition-all">
-                                            <span>Загрузите файл </span>
-                                            <input required id="file-upload" name="file-upload" type="file" class="sr-only"
-                                                @change="handleFileChange" />
-                                        </label>
-                                        <p class="pl-1">или перенесите его сюда</p>
-                                    </div>
-                                    <p class="text-xs/5 text-white">Файл до 8 МБ</p>
-                                    <div v-if="formData.file" class=" text-sm/6 text-gray-400 mt-4">
-                                        Загруженный файл: <span class=" font-bold text-white">{{formData.file.name}}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <hr class="bg-gray-600 h-[1px] mt-12 w-full outline-none border-none">
 
-                    <div class="mt-12 flex items-center justify-center gap-x-6">
-                        <a href="/" type="button"
-                            class="text-decoration-none font-bold flex items-center justify-center hover:bg-slate-800 transition-all bg-slate-600 text-white px-4 py-2 rounded">Отмена</a>
-                        <button type="submit"
-                            class="text-decoration-none font-bold flex items-center justify-center hover:bg-slate-950 transition-all bg-slate-900 text-white px-4 py-2 rounded">Сохранить</button>
-                    </div>
-                </form>
-            </div>
+            <form @submit.prevent="handleSubmit">
+                <TextInput v-model="formData.name" label="Название файла" placeholder="Введите название" />
+
+                <hr class="bg-gray-600 h-[1px] mt-12 w-full outline-none border-none">
+
+                <FileInput v-model="formData.file" label="Загрузите файл *" v-bind:originalName='originalName' maxSize="8" />
+
+                <hr class="bg-gray-600 h-[1px] mt-12 w-full outline-none border-none">
+                <input type="hidden" name="_method" value="PUT" v-if="isEditMode">
+                <div class="mt-12 flex items-center justify-center gap-x-6">
+                    <a href="/" type="button"
+                        class="text-decoration-none font-bold flex items-center justify-center hover:bg-slate-800 transition-all bg-slate-600 text-white px-4 py-2 rounded">Отмена</a>
+                    <button type="submit"
+                        class="text-decoration-none font-bold flex items-center justify-center hover:bg-slate-950 transition-all bg-slate-900 text-white px-4 py-2 rounded">
+                        {{ isEditMode ? 'Сохранить изменения' : 'Создать файл' }}
+                    </button>
+                </div>
+            </form>
         </div>
     </default-layout>
 </template>
 
 <script>
-import { ref } from 'vue';
-import { Inertia } from '@inertiajs/inertia';
-import DefaultLayout from "../layouts/DefaultLayout.vue";
+import TextInput from '../components/TextInput.vue';
+import FileInput from '../components/FileInput.vue';
+import DefaultLayout from '../layouts/DefaultLayout.vue';
+import { ref, reactive, onMounted, computed } from 'vue';
+import { usePage } from '@inertiajs/vue3';
 import useApi from '../composables/useApi';
 import { API_ENDPOINTS } from '../constants/apiEndpoints';
 
 export default {
-    components: { DefaultLayout },
-    name: "Create",
+    components: { DefaultLayout, TextInput, FileInput },
     setup() {
-        const formData = ref({
+        const { props } = usePage(); 
+        const { fetchData, postData, putData } = useApi();
+
+        const formData = reactive({
             name: '',
             file: null,
         });
 
-        const { postData } = useApi();
+        const isEditMode = computed(() => !!props.id || false); 
 
-        const isDragging = ref(false);
-
-        const handleFileChange = (event) => {
-            formData.value.file = event.target.files[0];
-        };
-
-        const dragOver = () => {
-            isDragging.value = true;
-        };
-
-        const dragLeave = () => {
-            isDragging.value = false;
-        };
-
-        const drop = (event) => {
-            isDragging.value = false;
-            formData.value.file = event.dataTransfer.files[0];
-        };
-
-        const handleSubmit = () => {
-            const formDataToSend = new FormData();
-            formDataToSend.append('name', formData.value.name);
-            formDataToSend.append('file', formData.value.file);
+        const originalName = ref('');
+        
+        const loadFileDetails = async () => {
+            if (!isEditMode.value) return;
 
             try {
-                const response = postData(API_ENDPOINTS.CREATE_FILE, formDataToSend);
-                if(response.data) {
-                    this.$inertia.get(route("index"))
-                }
-            } catch(error) {
-                console.error("Произошла ошибка при отправке данных", error)
+                const response = await fetchData(API_ENDPOINTS.FILE_DETAIL(props.id));
+                formData.name = response.name;
+                formData.file = null; 
+                originalName.value = response.original_file_name;
+            } catch (error) {
+                console.error('Ошибка при загрузке данных:', error);
             }
-
         };
+
+        const handleSubmit = async () => {
+            try {
+                const endpoint = isEditMode.value
+                    ? API_ENDPOINTS.UPDATE_FILE(props.id)
+                    : API_ENDPOINTS.CREATE_FILE;
+
+                const payload = new FormData();
+                payload.append('name', formData.name);
+                if (formData.file) {
+                    payload.append('file', formData.file);
+                }
+
+                if (isEditMode.value) {
+                    payload.append('_method', 'PUT');
+                }
+
+                if (isEditMode.value == false) {
+                    await postData(endpoint, payload);
+                } else {
+                    await putData(endpoint, payload);
+                }
+
+                alert(isEditMode.value ? 'Файл успешно обновлен!' : 'Файл успешно создан!');
+            } catch (error) {
+                console.error('Ошибка при отправке данных:', error);
+            }
+        };
+
+        onMounted(loadFileDetails);
 
         return {
             formData,
-            isDragging,
-            handleFileChange,
-            dragOver,
-            dragLeave,
-            drop,
+            isEditMode,
             handleSubmit,
+            originalName,
         };
     },
 };
 </script>
-
-<style scoped>
-.dragging {
-    border-color: blue !important;
-}
-</style>

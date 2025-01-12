@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Http\Requests\FileUploadRequest;
 use App\Models\File;
+use Exception;
 use Illuminate\Support\Facades\Redis;
 use Intervention\Image\Facades\Image;
 use Illuminate\Support\Facades\Storage;
@@ -31,9 +32,10 @@ class FilesController extends Controller
         }
 
         $record = File::create([
+            'original_file_name' => $request->originalName,
             'name' => $request->name,
-            'location' => $filePath,
             'extension' => $request->fileExtension,
+            'location' => $filePath,
             'size' => $request->fileSize,
             'preview' => $previewPath,
         ]);
@@ -77,6 +79,7 @@ class FilesController extends Controller
             $record->preview = $previewPath;
             $record->extension = $file->getClientOriginalExtension();
             $record->size = round($file->getSize() / 1024 / 1024, 2);
+            $record->original_file_name = $request->originalName;
         }
 
         if($request->has("name")) {
@@ -151,7 +154,7 @@ class FilesController extends Controller
     }
 
     public function getFile(Request $request) {
-        $id = $request->input("id");
+        $id = $request->id;
         $record = File::findOrFail($id);
         
         return response()->json($record);

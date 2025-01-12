@@ -46,7 +46,7 @@
                                 <td class="py-4 px-6 text-sm font-medium whitespace-nowrap text-white">
                                     {{ item.size }} МБ</td>
                                 <td class="py-4 px-6 text-sm font-medium text-right whitespace-nowrap">
-                                    <a href="#" class="text-blue-500 hover:underline">Edit</a>
+                                    <a :href="'/edit/' + item.id" class="text-blue-500 hover:underline">Edit</a>
                                 </td>
                             </tr>
                         </tbody>

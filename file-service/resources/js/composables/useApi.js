@@ -23,7 +23,7 @@ export default function useApi() {
 
     const putData = async (endpoint, data) => {
         try {
-            const response = await axios.put(endpoint, data);
+            const response = await axios.post(endpoint, data);
             return response.data;
         } catch (error) {
             console.error('Ошибка при обновлении данных: ', error);
