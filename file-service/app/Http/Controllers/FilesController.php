@@ -33,8 +33,8 @@ class FilesController extends Controller
         $record = File::create([
             'name' => $request->name,
             'location' => $filePath,
-            'file_extension' => $request->fileExtension,
-            'file_size' => $request->fileSize,
+            'extension' => $request->fileExtension,
+            'size' => $request->fileSize,
             'preview' => $previewPath,
         ]);
 
