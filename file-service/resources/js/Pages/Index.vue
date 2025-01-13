@@ -38,15 +38,27 @@
                         <tbody class=" divide-y bg-gray-800 divide-gray-700">
                             <tr class="hover:bg-slate-800" v-for="item in items.data" :key="item.id">
                                 <td class="py-4 px-6 text-sm font-medium whitespace-nowrap text-white">
-                                    <img :src="'/storage/' + item.preview" alt=""></td>
+                                    <img :src="'/storage/' + item.preview" alt="">
+                                </td>
                                 <td class="py-4 px-6 text-sm font-medium whitespace-nowrap text-white">
                                     {{ item.name }}</td>
                                 <td class="py-4 px-6 text-sm font-medium whitespace-nowrap text-white">
                                     .{{ item.extension }}</td>
                                 <td class="py-4 px-6 text-sm font-medium whitespace-nowrap text-white">
                                     {{ item.size }} МБ</td>
-                                <td class="py-4 px-6 text-sm font-medium text-right whitespace-nowrap">
-                                    <a :href="'/edit/' + item.id" class="text-blue-500 hover:underline">Edit</a>
+                                <td class="py-4 px-6 text-sm font-medium whitespace-nowrap text-white">
+                                    <div class="flex justify-center items-center space-x-4">
+                                        <a :href="'/storage/' + item.location" :download="'/storage/' + item.location"
+                                            class="w-fit p-2 bg-white rounded transition-all hover:bg-gray-400"><img
+                                                class=" w-6 h-6" :src="'/icons/download.svg'" /></a>
+                                        <a :href="'/edit/' + item.id"
+                                            class="w-fit p-2 bg-white rounded transition-all hover:bg-gray-400"><img
+                                                class=" w-6 h-6" :src="'/icons/edit.svg'" /></a>
+                                        <button @click="openDeleteModal(item.id)"
+                                            class="w-fit p-2 bg-white rounded transition-all hover:bg-gray-400 cursor-pointer">
+                                            <img class="w-6 h-6" :src="'/icons/delete.svg'" />
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         </tbody>
@@ -56,14 +68,17 @@
                 <div v-else class="text-center mt-4">Объектов не найдено.</div>
                 <div v-if="items && items.meta.total > 0" class="flex justify-center mt-4">
                     <template v-for="(link, index) in items.meta.last_page" :key="index">
-                        <div class="mr-1 mb-1 px-4 py-3 text-sm leading-4 border rounded bg-slate-800 cursor-pointer hover:bg-slate-900 focus:border-indigo-500 focus:text-indigo-500"
-                            :class="{ 'bg-slate-700 text-white': link === items.meta.current_page }" preserve-scroll
+                        <div class="mr-1 mb-1 px-4 py-3 text-sm leading-4 border rounded bg-slate-600 cursor-pointer hover:bg-slate-800 focus:border-indigo-500 focus:text-indigo-500"
+                            :class="{ 'bg-slate-400 text-white': link === items.meta.current_page }" preserve-scroll
                             @click="paginate(link)">
                             {{ link }}
                         </div>
                     </template>
                 </div>
             </div>
+            <Modal :isOpen="isDeleteModalOpen" :message="deleteModalMessage"
+                :confirmButtonText="deleteModalConfirmButtonText" :cancelButtonText="deleteModalCancelButtonText"
+                @close="closeDeleteModal" @confirm="handleDeleteConfirm" />
         </div>
     </default-layout>
 </template>
@@ -75,9 +90,10 @@ import SearchInput from '../components/SearchInput.vue';
 import DefaultLayout from '../layouts/DefaultLayout.vue';
 import useApi from '../composables/useApi';
 import { API_ENDPOINTS } from '../constants/apiEndpoints';
+import Modal from '../components/Modal.vue';
 
 export default {
-    components: { SearchInput, DefaultLayout },
+    components: { SearchInput, DefaultLayout, Modal },
     name: 'Index',
     setup() {
         const page = usePage();
@@ -85,7 +101,13 @@ export default {
         const searchQuery = ref('');
         const currentPage = ref(1);
 
-        const { fetchData } = useApi();
+        const { fetchData, postData, putData, deleteData } = useApi();
+
+        const isDeleteModalOpen = ref(false);
+        const deleteModalMessage = ref('Вы уверены, что хотите удалить этот файл?');
+        const deleteModalConfirmButtonText = ref('Удалить файл');
+        const deleteModalCancelButtonText = ref('Отмена');
+        const itemIdToDelete = ref(null);
 
         const urlParams = new URLSearchParams(window.location.search);
         searchQuery.value = urlParams.get('search') || '';
@@ -115,6 +137,36 @@ export default {
             fetchItems();
         }
 
+        const openDeleteModal = (id) => {
+            itemIdToDelete.value = id;
+            deleteModalMessage.value = 'Вы уверены, что хотите удалить этот файл?';
+            deleteModalConfirmButtonText.value = 'Удалить файл';
+            deleteModalCancelButtonText.value = 'Отмена';
+            isDeleteModalOpen.value = true;
+        };
+
+        const closeDeleteModal = () => {
+            itemIdToDelete.value = null;
+            isDeleteModalOpen.value = false;
+        };
+
+        const handleDeleteConfirm = async () => {
+            if (!itemIdToDelete.value) {
+                console.error('Item ID is not set for deletion.');
+                closeDeleteModal();
+                return;
+            }
+
+            try {
+                const endpoint = API_ENDPOINTS.DELETE_FILE(itemIdToDelete.value);
+                await deleteData(endpoint);
+                closeDeleteModal();
+                fetchItems(); 
+            } catch (error) {
+                console.error('Ошибка при удалении файла:', error);
+            }
+        };
+
         watch(
             () => page.props.items,
             (newItems) => {
@@ -127,6 +179,13 @@ export default {
             searchQuery,
             handleSearch,
             paginate,
+            isDeleteModalOpen,
+            deleteModalMessage,
+            deleteModalConfirmButtonText,
+            deleteModalCancelButtonText,
+            openDeleteModal,
+            closeDeleteModal,
+            handleDeleteConfirm,
         };
     },
 };
