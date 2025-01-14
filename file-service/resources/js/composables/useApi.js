@@ -11,9 +11,15 @@ export default function useApi() {
         }
     };
 
-    const postData = async (endpoint, data) => {
+    const postData = async (endpoint, data, progress) => {
         try {
-            const response = await axios.post(endpoint, data);
+            const response = await axios.post(endpoint, data, {
+                onUploadProgress: (progressEvent) => {
+                    progress.value = Math.round(
+                        (progressEvent.loaded * 100) / progressEvent.total
+                    );
+                },
+            });
             return response.data;
         } catch (error) {
             console.error('Ошибка при отправке данных:', error);

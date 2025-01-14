@@ -9,8 +9,17 @@
                 </a>
             </div>
             <hr class="bg-gray-600 h-[1px] mt-12 w-full outline-none border-none">
-            <div v-if="items" class='flex justify-start text-start w-full p-4 container'>
+            <div v-if="items" class='flex flex-col justify-start text-start w-full p-4 container'>
                 <h1 class="text-white font-bold text-xl">Показано {{ items.data.length }} из {{ items.meta.total }}</h1>
+                <div v-if="items && items.meta.total > 0" class="flex justify-center mt-4 font-bold">
+                    <template v-for="(link, index) in items.meta.last_page" :key="index">
+                        <div class="mr-1 mb-1 px-4 py-3 text-sm leading-4 border rounded  cursor-pointer  focus:border-indigo-500 focus:text-indigo-500"
+                            :class="link == items.meta.current_page ? 'bg-slate-400 text-white' : 'bg-slate-600 hover:bg-slate-800'" preserve-scroll
+                            @click="paginate(link)">
+                            {{ link }}
+                        </div>
+                    </template>
+                </div>
             </div>
             <hr class="bg-gray-600 h-[1px]  w-full outline-none border-none">
             <div class="container mx-auto p-4">
@@ -165,7 +174,7 @@ export default {
                 const endpoint = API_ENDPOINTS.DELETE_FILE(itemIdToDelete.value);
                 await deleteData(endpoint);
                 closeDeleteModal();
-                fetchItems(); 
+                fetchItems();
             } catch (error) {
                 console.error('Ошибка при удалении файла:', error);
             }

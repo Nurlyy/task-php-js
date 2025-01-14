@@ -20,15 +20,21 @@
                     <a href="/" type="button"
                         class="text-decoration-none font-bold flex items-center justify-center hover:bg-slate-800 transition-all bg-slate-600 text-white px-4 py-2 rounded">Отмена</a>
                     <button type="button" @click="openSaveModal"
-                        :disabled='(oldData.name == formData.name && formData.file == null)'
+                        :disabled='(oldData.name == formData.name && formData.file == null) || isUploading'
                         :class="{ 'bg-slate-400 hover:bg-slate-400 cursor-default': (isEditMode ? (oldData.name == formData.name && formData.file == null) : (formData.file == null)) }"
                         class="text-decoration-none font-bold flex items-center justify-center hover:bg-slate-950 transition-all bg-slate-900 text-white px-4 py-2 rounded">
-                        {{ isEditMode ? 'Сохранить изменения' : 'Создать файл' }}
+                        {{ isUploading ? "Загрузка..." : (isEditMode ? 'Сохранить изменения' : 'Создать файл') }}
                     </button>
                     <button v-if="isEditMode" type="button" @click="openDeleteModal"
                         class="text-decoration-none font-bold flex items-center justify-center hover:bg-red-950 transition-all bg-red-900 text-white px-4 py-2 rounded">
                         Удалить файл
                     </button>
+                </div>
+                <div v-if="progress > 0" class=" mt-10 mx-64">
+                    <h1 class=" text-white font-bold text-xl text-center">Загрузка</h1>
+                    <div class="w-full rounded-full h-2.5 dark:bg-slate-600 mt-2">
+                        <div class="bg-blue-600 h-2.5 rounded-full" :style="{ width: progress + '%' }"></div>
+                    </div>
                 </div>
             </form>
 
@@ -82,6 +88,10 @@ export default {
 
         const originalName = ref('');
 
+        const progress = ref(0);
+        const isUploading = ref(false);
+
+
         const loadFileDetails = async () => {
             if (!isEditMode.value) return;
 
@@ -113,6 +123,9 @@ export default {
         };
 
         const handleSaveConfirm = async () => {
+            closeSaveModal();
+            isUploading.value = true;
+            progress.value = 0;
             try {
                 const endpoint = isEditMode.value
                     ? API_ENDPOINTS.UPDATE_FILE(props.id)
@@ -123,17 +136,19 @@ export default {
                     payload.append('file', formData.file);
                 }
                 if (isEditMode.value) {
-                    payload.append('_method', 'PUT'); 
+                    payload.append('_method', 'PUT');
                 }
                 if (isEditMode.value) {
-                    await postData(endpoint, payload); 
+                    await postData(endpoint, payload, progress);
                 } else {
-                    await postData(endpoint, payload);
+                    await postData(endpoint, payload, progress);
                 }
                 closeSaveModal();
                 window.location.href = '/';
             } catch (error) {
                 console.error('Ошибка при отправке данных:', error);
+            } finally {
+                isUploading.value = false;
             }
         };
 
@@ -183,6 +198,8 @@ export default {
             openDeleteModal,
             closeDeleteModal,
             handleDeleteConfirm,
+            progress,
+            isUploading,
         };
     },
 };
