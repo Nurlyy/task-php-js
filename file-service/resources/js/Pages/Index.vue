@@ -9,6 +9,10 @@
                 </a>
             </div>
             <hr class="bg-gray-600 h-[1px] mt-12 w-full outline-none border-none">
+            <div v-if="items" class='flex justify-start text-start w-full p-4 container'>
+                <h1 class="text-white font-bold text-xl">Показано {{ items.data.length }} из {{ items.meta.total }}</h1>
+            </div>
+            <hr class="bg-gray-600 h-[1px]  w-full outline-none border-none">
             <div class="container mx-auto p-4">
                 <div v-if="items && items.data.length" class="">
                     <table class="min-w-full divide-y  table-fixed divide-gray-700">
